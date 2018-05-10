@@ -2,91 +2,39 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
-#include <unistd.h>
 #include <iostream>
 
-#define NUM_THREADS 5
-//g++ -o ejc fichero.cc  -lpthread
-//ejc localhost 8080
-//netstat -uan
-//ps -aT     	para ver los threads
-//nc -u localhost 8080 			conectarnos al host con udp
-class ServerThread{
-   public:
- 	ServerThread(int s):sd(s){};
-	virtual ~ServerThread(){};
-	void do_message(){
-		while(true){
-			char buf[256];
-			struct sockaddr src_addr;
-			socklen_t addrlen = sizeof(src_addr);
-			char host[NI_MAXHOST];
-			char serv[NI_MAXSERV];
-
-			ssize_t s = recvfrom(sd,buf,255,0,&src_addr, &addrlen);
-			getnameinfo(&src_addr, addrlen, host, NI_MAXHOST, serv, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
-			std::cout<< "Thread: " << pthread_self() << "\n";
-			std::cout<< "Conexion: " << host << ":" << serv << "\n";
-			std::cout<< "Mensaje: " << buf << "\n";
-			sleep(1);
-			sendto(sd,buf,s,0,&src_addr,addrlen);
-		}
-		std::cout<< "TERMINADO";
-
-	}
-   private:
-	int sd;	
-};
-extern "C" void *start_routine (void * _st){
-		ServerThread * st = static_cast<ServerThread*>(_st);
-		st->do_message();
-		delete st;
-	
-	return 0;
-
-}
 int main (int argc, char **argv)
 {
-	struct addrinfo hints;
-	struct addrinfo* res;
-	//inicializar socket
-	memset((void*) &hints, '\0', sizeof(struct addrinfo));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_DGRAM;
 
+	struct addrinfo hints;	
+	memset((void*) &hints, '\0', sizeof(struct addrinfo));
+	hints.ai_family = AF_UNSPEC;
+
+	struct addrinfo* res;
+	
 	int rc = getaddrinfo(argv[1],argv[2], &hints, &res);
 
 	if (rc !=0 ){
-		std::cout <<"error getaddrinfo(): " << gai_strerror(rc)<< std::endl;
+		std::cout <<"Error: getaddrinfo() Name or service not known "<< std::endl;
 		return -1;
 	}
 
-	int sd = socket (res->ai_family, res->ai_socktype,0);
-	bind ( sd, res->ai_addr, res->ai_addrlen);
-	listen(sd,15);
-	freeaddrinfo(res);
-
-	//inizializar pool de threads
-
-	for( int i = 0; i <= NUM_THREADS; i++){
-		pthread_t tid;
-		pthread_attr_t attr;
-
-		ServerThread* st = new ServerThread(sd);
-
-		pthread_attr_init(&attr);
-		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-	 	pthread_create(&tid, &attr, start_routine, static_cast<void*>(st));
-
-
+	char host[NI_MAXHOST];
+	char server[NI_MAXSERV];
+	
+	while(res->ai_next != NULL){
+	
+	int _rc =  getnameinfo(res->ai_addr, res->ai_addrlen,host, NI_MAXHOST, server, NI_MAXSERV, NI_NUMERICHOST);
+		
+	if (_rc != 0){
+		std::cout <<"Error: getnameinfo()\n ";
+		return -1;
 	}
-
-	// Thread Ppal
-	char c;
-	std::cin >> c;
-
-
+		
+		std::cout << host << " " << res->ai_family << " " << res->ai_socktype << std::endl;
+		res = res->ai_next;
+	}
 	return 0;
-
+	
 }
