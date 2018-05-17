@@ -35,8 +35,6 @@ int main (int argc, char **argv)
 	
 	freeaddrinfo(res);
 
-	struct sockaddr src_addr;
-	socklen_t addlen = sizeof(src_addr);
 
 	
 	do{
