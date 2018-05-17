@@ -17,20 +17,45 @@ class ServerThread{
 	virtual ~ServerThread(){};
 	void do_message(){
 		while(true){
-			char buf[256];
-			struct sockaddr src_addr;
-			socklen_t addrlen = sizeof(src_addr);
 			char host[NI_MAXHOST];
-			char serv[NI_MAXSERV];
+			char server[NI_MAXSERV];
+		char buff [256];
+		struct sockaddr soc;
+		socklen_t addrlen = sizeof (soc);
+		
+		ssize_t size = recvfrom(sd,buff, 255, 0, &soc, &addrlen);
+		getnameinfo(&soc, addrlen, host, NI_MAXHOST, server, NI_MAXSERV, 			NI_NUMERICHOST);
+		std::cout << size << " bytes de " << host << " " << server<<"  Thread: " << pthread_self() << "\n";
 
-			ssize_t s = recvfrom(sd,buf,255,0,&src_addr, &addrlen);
-			getnameinfo(&src_addr, addrlen, host, NI_MAXHOST, serv, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
-			std::cout<< "Thread: " << pthread_self() << "\n";
-			std::cout<< "Conexion: " << host << ":" << serv << "\n";
-			std::cout<< "Mensaje: " << buf << "\n";
-			sleep(1);
-			sendto(sd,buf,s,0,&src_addr,addrlen);
+			char buffer[256];
+			memset((void*) buffer, '\0',256);
+			struct tm* stTime;
+			time_t t;
+			time (&t);
+			stTime = localtime(&t);
+		if(buff[0] == 'q'){
+			std::cout << "Saliendo..."<< std::endl;
+			break;
 		}
+			
+		 else if(buff[0] == 't'){
+		
+			strftime(buffer,256, "%H:%M:%S", stTime);
+			sendto(sd,buffer,256,0,&soc, addrlen);
+			
+		}
+		else if(buff[0] == 'd' ){
+
+			strftime(buffer,256, "%Y-%m-%d", stTime);
+			sendto(sd,buffer,256,0,&soc, addrlen);
+		}
+		else {
+			std::cout << "Comando no soportado " << buff[0] << std::endl;
+		}
+			sleep(3);
+
+	}
+
 
 	}
    private:
@@ -59,6 +84,9 @@ int main (int argc, char **argv)
 		std::cout <<"error getaddrinfo(): " << gai_strerror(rc)<< std::endl;
 		return -1;
 	}
+	
+
+
 	int sd = socket (res->ai_family, res->ai_socktype,0);
 		bind ( sd, res->ai_addr, res->ai_addrlen);
 		listen(sd,15);
@@ -80,8 +108,13 @@ int main (int argc, char **argv)
 		}
 
 	// Thread Ppal
-	char c;
+	char c = 'p';
+	while(c != 'q'){
 	std::cin >> c;
+}
+	
+	freeaddrinfo(res);
+	close(sd);
 
 	return 0;
 

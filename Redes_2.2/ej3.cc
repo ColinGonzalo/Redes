@@ -40,42 +40,7 @@ ssize_t sizeRec = recvfrom(sd,buff, 255, 0, &soc, &addrlen);
 
 	int nm = getnameinfo (&soc, addrlen, host, NI_MAXHOST, serv, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
 	std::cout << buff << std::endl;
-	/*while(true){
-		char buff [256];
-		struct sockaddr soc;
-		socklen_t addrlen = sizeof (soc);
-		
-		ssize_t size = recvfrom(sd,buff, 255, 0, &soc, &addrlen);
-		getnameinfo(&soc, addrlen, host, NI_MAXHOST, server, NI_MAXSERV, 			NI_NUMERICHOST);
-		std::cout << size << " bytes de " << host << " " << server << std::endl;
 
-			char buffer[256];
-			memset((void*) buffer, '\0',256);
-			struct tm* stTime;
-			time_t t;
-			time (&t);
-			stTime = localtime(&t);
-		if(buff[0] == 'q'){
-			std::cout << "Saliendo..."<< std::endl;
-			break;
-		}
-			
-		 else if(buff[0] == 't'){
-		
-			strftime(buffer,256, "%H:%M:%S", stTime);
-			sendto(sd,buffer,256,0,&soc, addrlen);
-			
-		}
-		else if(buff[0] == 'd' ){
-
-			strftime(buffer,256, "%Y-%m-%d", stTime);
-			sendto(sd,buffer,256,0,&soc, addrlen);
-		}
-		else {
-			std::cout << "Comando no soportado " << buff[0] << std::endl;
-		}
-
-	}*/
 
 	freeaddrinfo(res);
 
