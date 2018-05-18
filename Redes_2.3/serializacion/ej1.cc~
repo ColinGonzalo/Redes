@@ -31,7 +31,7 @@ public:
        alloc_data(sizeof(char) * 80 + sizeof(int16_t) * 2);
        char* tmp = _data + sizeof(int32_t);
        memcpy(tmp, (void*)name, sizeof(char) * 80);
-	tmp +=  sizeof(char) + 80;
+	tmp +=  sizeof(char) * 80;
        memcpy(tmp, &x, sizeof(int16_t));
 	tmp += sizeof(int16_t);
        memcpy(tmp, &y, sizeof(int16_t));
@@ -64,14 +64,21 @@ public:
 int main(int argc, char **argv)
 {
    Jugador player1("Colin", 25, 128);
+	Jugador player2("-", 0, 0);
    int fd_opened = open("Archivo.txt", O_WRONLY | O_TRUNC | O_CREAT);
    if(fd_opened < 0){
      return 1;
    }
+   int fd2_opened = open("Archivo2.txt", O_WRONLY | O_TRUNC | O_CREAT);
+   if(fd2_opened < 0){
+     return 1;
+   }
    player1.to_bin();
    write(fd_opened, player1.data(), sizeof(player1));
-   std::cout << "AS" << std::endl;
    close(fd_opened);
+   player2.from_bin(player1.data());
+   std::cout << player2.name << " " << player2.x << " " << player2.y << std::endl;
+   close(fd2_opened);
 
    return 0;
   
