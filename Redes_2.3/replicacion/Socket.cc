@@ -1,8 +1,10 @@
 #include "Socket.h"
 #include "Serializable.h"
-
+#include <stdio.h>
 #include <string.h>
-
+inline void error(const string& s){
+  throw runtime_error(s);
+}
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 // Implementación Socket
@@ -40,9 +42,44 @@ std::ostream& operator<<(std::ostream& os, const Socket& s)
 }
 
 // ----------------------------------------------------------------------------
+/**
+     *  Construye el socket UDP con la dirección y puerto dados. Esta función
+     *  usara getaddrinfo para obtener la representación binaria de dirección y
+     *  puerto.
+     *	int getaddrinfo(const char *nodename, const char *servname,
+                const struct addrinfo *hints, struct addrinfo **res);
 
+     *
+     *  Además abrirá el canal de comunicación con la llamada socket(2).
+     *
+     *    @param address cadena que representa la dirección o nombre
+     *    @param port cadena que representa el puerto o nombre del servicio
+     *
+     *  En caso de error lanzar una excepcion std::runtime_error
+     */
 Socket::Socket(const char * address, const char * port):sd(-1)
 {
+	struct addrinfo hints, *servinfo;
+        int rv;
+
+
+	memset(&hints, 0, sizeof hints);
+     
+	hints.ai_family = AF_INET; // use AF_INET6 to force IPv6
+	hints.ai_socktype = SOCK_DGRAM; //use SOCK_DGRAM for UDP
+
+	rv = getaddrinfo(address, port, &hints, &servinfo);
+	if(rv != 0){
+	   error("ERROR en la direccion");
+	}
+	sa = servinfo->ai_addr;
+	sa_len = servinfo->ai_addrlen;
+
+        sd = socket(servinfo->ai_family, servinfo->ai_socktype, 0);
+
+	if(sd == - 1){
+	  error("ERROR al crear el socket UDP");	
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -65,6 +102,13 @@ int Socket::bind()
      */
 int Socket::send(Serializable * obj, Socket * sock)
 {
+      //Serializamos el objeto;
+      obj->to_bin();
+
+     //send() is used for TCP SOCK_STREAM connected sockets, and sendto() is used for UDP SOCK_DGRAM unconnected datagram sockets
+     int data = sendto(sock->sd, (void*)obj->data(), obj->size(), 0,(struct sockaddr *)&sock->sa, sock->sa_len);
+     
+     return data;
 }
 
 // ----------------------------------------------------------------------------
@@ -78,9 +122,26 @@ int Socket::send(Serializable * obj, Socket * sock)
      *    @param sock que identificará al extremo que envía los datos si es
      *    distinto de 0 se creará un objeto Socket con la dirección y puerto.
      *
-     *    @return 0 en caso de éxito o -1 si error (cerrar conexión)
+     *    @return 0 en caso de éxito o -1 si error (cerrar conexión)*/
 int Socket::recv(char * buffer, Socket ** sock)
 {
+ 
+	char host[NI_MAXHOST];
+	char serv [NI_MAXSERV];
+
+        struct sockaddr sock_recv;
+	socklen_t sock_recv_len = sizeof(sock_recv);
+
+	buffer = (char*)malloc(MAX_MESSAGE_SIZE); 
+        
+        ssize_t bytesReceived;
+
+        if(sock != 0){
+		bytesReceived = recvfrom(sock->sd, (void*)&buffer, MAX_MESSAGE_SIZE, 0, sock_recv, sock_recv_len);
+                sock = new Socket(&sock_recv, sock_recv_len);
+	}
+ 
+       return 0;        
 }
 
 // ----------------------------------------------------------------------------

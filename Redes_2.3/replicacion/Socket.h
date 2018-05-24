@@ -125,6 +125,9 @@ protected:
      */
     struct sockaddr sa;
     socklen_t       sa_len;
+
+private:
+     inline void error(const string& s);
 };
 
 #endif /* SOCKET_H_ */
