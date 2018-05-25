@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <iostream>
 
-#define NUM_THREADS 5
 //g++ -o ejc fichero.cc  -lpthread
 //ejc localhost 8080
 //netstat -uan
@@ -16,25 +15,27 @@ class ServerThread{
  	ServerThread(int s):sd(s){};
 	virtual ~ServerThread(){};
 	void do_message(){
-		while(true){
-			char buf[256];
-			struct sockaddr src_addr;
-			socklen_t addrlen = sizeof(src_addr);
-			char host[NI_MAXHOST];
-			char serv[NI_MAXSERV];
-
-			ssize_t s = recvfrom(sd,buf,255,0,&src_addr, &addrlen);
-			getnameinfo(&src_addr, addrlen, host, NI_MAXHOST, serv, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
-			std::cout<< "Thread: " << pthread_self() << "\n";
-			std::cout<< "Conexion: " << host << ":" << serv << "\n";
-			std::cout<< "Mensaje: " << buf << "\n";
-			sleep(1);
-			sendto(sd,buf,s,0,&src_addr,addrlen);
+		
+		while (!salir){
+			
+		char buff[256];
+		ssize_t bReciv = recv(sd, &buff, 255, 0 );
+		
+		if(bReciv == 0){
+			salir = true;
+			std::cout<< "Saliendo . . .\n";
 		}
+		else {
+			send(sd, &buff, bReciv,0);
+			std::cout<< pthread_self() << std::endl;
+						
 
+		}
 	}
+}
    private:
-	int sd;	
+	int sd;
+	bool salir;
 };
 extern "C" void *start_routine (void * _st){
 		ServerThread * st = static_cast<ServerThread*>(_st);
@@ -51,7 +52,10 @@ int main (int argc, char **argv)
 	//inicializar socket
 	memset((void*) &hints, '\0', sizeof(struct addrinfo));
 	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_socktype = SOCK_STREAM;
+	
+	char host[NI_MAXHOST];
+	char server[NI_MAXSERV];
 
 	int rc = getaddrinfo(argv[1],argv[2], &hints, &res);
 
@@ -63,13 +67,18 @@ int main (int argc, char **argv)
 		bind ( sd, res->ai_addr, res->ai_addrlen);
 		listen(sd,15);
 		freeaddrinfo(res);
-
+struct sockaddr client;
+socklen_t client_len = sizeof(client);
 	//inizializar pool de threads
-		for( int i = 0; i <= NUM_THREADS; i++){
+	
+			while(true){
+				
+			int sThread = accept(sd ,(struct sockaddr *) &client, &client_len);
+			
 			pthread_t tid;
 			pthread_attr_t attr;
 
-			ServerThread* st = new ServerThread(sd);
+			ServerThread* st = new ServerThread(sThread);
 
 			pthread_attr_init(&attr);
 			pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
